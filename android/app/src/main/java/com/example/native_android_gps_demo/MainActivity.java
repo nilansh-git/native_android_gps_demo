@@ -1,27 +1,20 @@
 package com.example.native_android_gps_demo;
 
-import android.os.Build;
-import android.Manifest;
 import android.util.Log;
-import android.os.Bundle;
+import android.Manifest;
+import android.os.Build;
 import android.os.Looper;
+import android.os.Bundle;
 import android.content.Intent;
-import android.os.Build.VERSION_CODES;
-import android.content.pm.PackageManager;
-
 import android.database.Cursor;
+import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteDatabase;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.google.android.gms.location.Priority;
-import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.*;
 
 import java.util.Map;
 import java.util.List;
@@ -34,7 +27,9 @@ import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.embedding.android.FlutterActivity;
 
 public class MainActivity extends FlutterActivity {
-    private static final int LOCATION_PERMISSION_REQUEST_CODE = 100;
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
+    private static final int BACKGROUND_LOCATION_PERMISSION_CODE = 1002;
+
     private FusedLocationProviderClient fusedLocationProviderClient;
     private LocationCallback locationCallback;
     private static final String LOCATION_STREAM_CHANNEL = "native_location_stream";
@@ -49,30 +44,40 @@ public class MainActivity extends FlutterActivity {
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         dbHelper = new LocationDatabaseHelper(getApplicationContext());
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
-                    ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        checkForegroundPermissions();
+    }
 
-                ActivityCompat.requestPermissions(this,
-                        new String[]{
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                                Manifest.permission.ACCESS_COARSE_LOCATION,
-                                Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                        },
-                        LOCATION_PERMISSION_REQUEST_CODE);
-            } else {
-                startForegroundLocationService();
-                startLocationUpdates();
-            }
+    private void checkForegroundPermissions() {
+        List<String> neededPermissions = new ArrayList<>();
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            neededPermissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            neededPermissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+        }
+
+        if (!neededPermissions.isEmpty()) {
+            ActivityCompat.requestPermissions(this,
+                    neededPermissions.toArray(new String[0]),
+                    LOCATION_PERMISSION_REQUEST_CODE);
         } else {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                        LOCATION_PERMISSION_REQUEST_CODE);
-            } else {
-                startForegroundLocationService();
-                startLocationUpdates();
-            }
+            checkAndRequestBackgroundPermission();
+        }
+    }
+
+    private void checkAndRequestBackgroundPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                        != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION},
+                    BACKGROUND_LOCATION_PERMISSION_CODE);
+        } else {
+            startForegroundLocationService();
+            startLocationUpdates();
         }
     }
 
@@ -120,7 +125,6 @@ public class MainActivity extends FlutterActivity {
                 .setMethodCallHandler((call, result) -> {
                     if (call.method.equals("startService")) {
                         startForegroundLocationService();
-                        startLocationUpdates();
                         result.success("started");
                     } else if (call.method.equals("stopService")) {
                         stopService(new Intent(this, LocationForegroundService.class));
@@ -133,7 +137,7 @@ public class MainActivity extends FlutterActivity {
 
     private void startLocationUpdates() {
         LocationRequest locationRequest = LocationRequest.create();
-        locationRequest.setInterval(5000); // 5 seconds
+        locationRequest.setInterval(5000);
         locationRequest.setFastestInterval(2000);
         locationRequest.setPriority(Priority.PRIORITY_HIGH_ACCURACY);
 
@@ -148,13 +152,11 @@ public class MainActivity extends FlutterActivity {
 
                 Log.d("Location", "Lat: " + latitude + ", Lng: " + longitude + ", Time: " + timestamp);
 
-                // Later: send to Flutter or store in SQLite
                 if (eventSink != null) {
                     HashMap<String, Object> locationData = new HashMap<>();
                     locationData.put("lat", latitude);
                     locationData.put("lng", longitude);
                     locationData.put("timestamp", timestamp);
-
                     eventSink.success(locationData);
                 }
 
@@ -174,52 +176,16 @@ public class MainActivity extends FlutterActivity {
         }
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (fusedLocationProviderClient != null && locationCallback != null) {
-            fusedLocationProviderClient.removeLocationUpdates(locationCallback);
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            boolean fineGranted = false;
-            boolean backgroundGranted = false;
-
-            for (int i = 0; i < permissions.length; i++) {
-                if (permissions[i].equals(Manifest.permission.ACCESS_FINE_LOCATION)) {
-                    fineGranted = grantResults[i] == PackageManager.PERMISSION_GRANTED;
-                }
-                if (permissions[i].equals(Manifest.permission.ACCESS_BACKGROUND_LOCATION)) {
-                    backgroundGranted = grantResults[i] == PackageManager.PERMISSION_GRANTED;
-                }
-            }
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                if (fineGranted && backgroundGranted) {
-                    startForegroundLocationService();
-                    startLocationUpdates();
-                } else {
-                    Log.e("Permission", "Both foreground and background location permissions are required");
-                }
-            } else {
-                if (fineGranted) {
-                    startForegroundLocationService();
-                    startLocationUpdates();
-                } else {
-                    Log.e("Permission", "Location permission denied");
-                }
-            }
+    private void startForegroundLocationService() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(new Intent(this, LocationForegroundService.class));
+        } else {
+            startService(new Intent(this, LocationForegroundService.class));
         }
     }
 
     private List<Map<String, Object>> getStoredLocationsFromDB() {
         List<Map<String, Object>> locationList = new ArrayList<>();
-
         SQLiteDatabase db = dbHelper.getReadableDatabase();
         Cursor cursor = db.query(
                 LocationDatabaseHelper.TABLE_NAME,
@@ -245,11 +211,43 @@ public class MainActivity extends FlutterActivity {
         return locationList;
     }
 
-    private void startForegroundLocationService() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(new Intent(this, LocationForegroundService.class));
-        } else {
-            startService(new Intent(this, LocationForegroundService.class));
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            boolean granted = true;
+            for (int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    granted = false;
+                    break;
+                }
+            }
+
+            if (granted) {
+                checkAndRequestBackgroundPermission();
+            } else {
+                Log.e("Permission", "Foreground location permission denied");
+            }
+        }
+
+        if (requestCode == BACKGROUND_LOCATION_PERMISSION_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startForegroundLocationService();
+                startLocationUpdates();
+            } else {
+                Log.e("Permission", "Background location permission denied");
+            }
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (fusedLocationProviderClient != null && locationCallback != null) {
+            fusedLocationProviderClient.removeLocationUpdates(locationCallback);
         }
     }
 }
