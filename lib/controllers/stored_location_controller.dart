@@ -51,32 +51,3 @@ class StoredLocationController extends GetxController {
     super.onClose();
   }
 }
-
-// import 'package:flutter/services.dart';
-// import 'package:get/get.dart';
-//
-// class StoredLocationController extends GetxController {
-//   static const MethodChannel _methodChannel =
-//       MethodChannel('native_sqlite_channel');
-//
-//   var locations = <Map<String, dynamic>>[].obs;
-//
-//   Future<void> clearLocations() async {
-//     const method = MethodChannel('native_sqlite_channel');
-//     await method.invokeMethod('clearStoredLocations');
-//     locations.clear();
-//     update();
-//   }
-//
-//   Future<void> fetchStoredLocations() async {
-//     try {
-//       final List<dynamic> result =
-//           await _methodChannel.invokeMethod('getStoredLocations');
-//       locations.value =
-//           result.map((e) => Map<String, dynamic>.from(e)).toList();
-//       update();
-//     } catch (e) {
-//       print("Error fetching stored locations: $e");
-//     }
-//   }
-// }

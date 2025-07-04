@@ -5,7 +5,6 @@ import '../controllers/live_location_controller.dart';
 
 class LiveLocationScreen extends StatelessWidget {
   final controller = Get.put(LiveLocationController());
-  // final fgController = Get.put(ForegroundServiceController());
 
   LiveLocationScreen({super.key});
 
@@ -57,33 +56,6 @@ class LiveLocationScreen extends StatelessWidget {
               );
             }),
           ),
-          // Padding(
-          //   padding: const EdgeInsets.all(16.0),
-          //   child: Obx(() => ElevatedButton.icon(
-          //         icon: Icon(
-          //           fgController.isServiceRunning.value
-          //               ? Icons.stop_circle
-          //               : Icons.play_circle_fill,
-          //           color: Colors.white,
-          //         ),
-          //         onPressed: fgController.toggleService,
-          //         label: Text(
-          //             fgController.isServiceRunning.value
-          //                 ? "Stop Foreground Service"
-          //                 : "Start Foreground Service",
-          //             style: TextStyle(color: Colors.white)),
-          //         style: ElevatedButton.styleFrom(
-          //           padding: const EdgeInsets.symmetric(
-          //               horizontal: 20, vertical: 14),
-          //           backgroundColor: fgController.isServiceRunning.value
-          //               ? Colors.redAccent
-          //               : Colors.blueAccent,
-          //           shape: RoundedRectangleBorder(
-          //             borderRadius: BorderRadius.circular(10),
-          //           ),
-          //         ),
-          //       )),
-          // ),
         ],
       ),
     );

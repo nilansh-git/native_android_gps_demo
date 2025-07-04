@@ -76,24 +76,6 @@ public class MainActivity extends FlutterActivity {
         }
     }
 
-//    @Override
-//    protected void onCreate(Bundle savedInstanceState) {
-//        super.onCreate(savedInstanceState);
-//
-//        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
-//        dbHelper = new LocationDatabaseHelper(getApplicationContext());
-//
-//        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-//                != PackageManager.PERMISSION_GRANTED) {
-//            ActivityCompat.requestPermissions(this,
-//                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-//                    LOCATION_PERMISSION_REQUEST_CODE);
-//        } else {
-//            startForegroundLocationService();
-//            startLocationUpdates();
-//        }
-//    }
-
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
         super.configureFlutterEngine(flutterEngine);
@@ -138,6 +120,7 @@ public class MainActivity extends FlutterActivity {
                 .setMethodCallHandler((call, result) -> {
                     if (call.method.equals("startService")) {
                         startForegroundLocationService();
+                        startLocationUpdates();
                         result.success("started");
                     } else if (call.method.equals("stopService")) {
                         stopService(new Intent(this, LocationForegroundService.class));
