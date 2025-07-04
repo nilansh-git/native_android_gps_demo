@@ -2,7 +2,8 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 class LiveLocationController extends GetxController {
-  static const EventChannel _eventChannel = EventChannel('native_location_stream');
+  static const EventChannel _eventChannel =
+      EventChannel('native_location_stream');
 
   var locations = <Map<String, dynamic>>[].obs;
 

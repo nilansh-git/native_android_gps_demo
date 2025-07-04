@@ -3,15 +3,18 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 class StoredLocationController extends GetxController {
-  static const MethodChannel _methodChannel = MethodChannel('native_sqlite_channel');
+  static const MethodChannel _methodChannel =
+      MethodChannel('native_sqlite_channel');
 
   var locations = <Map<String, dynamic>>[].obs;
   Timer? _pollingTimer;
 
   Future<void> fetchStoredLocations() async {
     try {
-      final List<dynamic> result = await _methodChannel.invokeMethod('getStoredLocations');
-      locations.value = result.map((e) => Map<String, dynamic>.from(e)).toList();
+      final List<dynamic> result =
+          await _methodChannel.invokeMethod('getStoredLocations');
+      locations.value =
+          result.map((e) => Map<String, dynamic>.from(e)).toList();
       update();
     } catch (e) {
       print("Error fetching stored locations: $e");

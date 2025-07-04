@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/foreground_service_controller.dart';
 import '../controllers/live_location_controller.dart';
 
 class LiveLocationScreen extends StatelessWidget {
